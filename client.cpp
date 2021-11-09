@@ -1,5 +1,5 @@
 #include <iostream>
-#include <string>
+#include <string.h>
 #include <fstream>
 using namespace std;
 
@@ -7,13 +7,14 @@ using namespace std;
 #define DOWNLOAD "download"
 #define IP "192.168.0.110"
 #define PORT 5000
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 5
+
+void upload(string nomeArquivo);
 
 int main(int argc, char const *argv[])
 {
 	string tipoTransferencia;
 	string nomeArquivo;
-	char buffer[BUFFER_SIZE];
 
 	if(argc!=3){
 		cout << ">> Erro! Número de argumentos inválido." << endl;
@@ -25,7 +26,8 @@ int main(int argc, char const *argv[])
 			cout << ">> Erro! Tipo de transferência inválida!." << endl;
 		}else{
 			if(tipoTransferencia==UPLOAD){
-				cout << UPLOAD << endl;
+				
+				upload(nomeArquivo);
 			}else{
 				cout << DOWNLOAD << endl;
 			}
@@ -33,4 +35,31 @@ int main(int argc, char const *argv[])
 	}
 
 	return 0;
+}
+
+void upload(string nomeArquivo){
+	cout << UPLOAD << endl;
+	ifstream arquivo;
+	char buffer[BUFFER_SIZE];
+	char caractere;
+	int i;
+	i=0;
+	arquivo.open(nomeArquivo);
+	if(!arquivo.is_open()){
+		cout << "Erro! Não foi possivel abrir o arquivo: " << nomeArquivo << endl;
+	}else{
+		while(arquivo.get(caractere)){
+			if(i>=BUFFER_SIZE){
+				cout << buffer;
+				i=0;
+				bzero(buffer, BUFFER_SIZE);
+			}	
+			buffer[i] = caractere;
+			i++;			
+		}
+		cout << buffer << endl;
+		i=0;
+		bzero(buffer, BUFFER_SIZE);
+	}
+	arquivo.close();
 }
