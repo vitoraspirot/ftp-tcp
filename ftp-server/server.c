@@ -6,28 +6,66 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 30
 #define PORT 8080
 #define SA struct sockaddr
 
 // Function designed for chat between client and server.
 void func(int sockfd)
 {
-    int i;
+    int i; 
+	char fileName[30];
+	char transferType[30];
 	char buff[BUFFER_SIZE];
+	char character;
+	FILE *arquivo;
     i=0;
     bzero(buff, BUFFER_SIZE);
+
     read(sockfd, buff, sizeof(buff));
-    printf(">> Transfer type: %s\n", buff);
+	strcpy(transferType, buff);
+    printf(">> Transfer type: %s\n", transferType);
     bzero(buff, BUFFER_SIZE);
+
     read(sockfd, buff, sizeof(buff));
-    printf(">> File name: %s\n", buff);
-    while(i<1024){
-        bzero(buff, BUFFER_SIZE);
-        read(sockfd, buff, sizeof(buff));
-        printf("%s", buff);
-        i++;
-    }	
+    strcpy(fileName, buff);
+	bzero(buff, BUFFER_SIZE);
+	printf(">> File name: %s\n", fileName);
+
+	if(strcmp(transferType, "upload")==0){
+		arquivo = fopen(fileName, "w");
+		if(arquivo==NULL){
+			printf(">> Error! Não foi possivel criar o arquivo.\n");
+		}else{
+			while(i<1024){
+				bzero(buff, BUFFER_SIZE);
+				read(sockfd, buff, sizeof(buff));
+				fprintf(arquivo,"%s", buff);
+				i++;
+			}	
+		}
+		fclose(arquivo);
+	}else{
+		printf("<< File Name: %s >>\n", fileName);
+		arquivo = fopen(fileName, "r");
+		if(arquivo==NULL){
+			printf(">> Error! The file from download doesn't exist.\n");
+		}else{
+			character = fgetc(arquivo);
+			while (character!=EOF){
+				if(i>=BUFFER_SIZE){
+					write(sockfd, buff, sizeof(buff));
+					bzero(buff, BUFFER_SIZE);
+					i=0;
+				}
+				buff[i]=character;
+				character = fgetc(arquivo);
+				i++;
+			}
+			write(sockfd, buff, sizeof(buff));     
+			fclose(arquivo);
+		}
+	}	
 }
 
 // Driver function
