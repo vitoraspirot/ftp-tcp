@@ -6,9 +6,10 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 30
 #define PORT 8080
-#define IP "192.168.0.110"
+//#define IP "192.168.0.111"
+#define IP "10.0.2.15"
 #define SA struct sockaddr
 #define DOWNLOAD_ARG 2
 #define UPLOAD_ARG 1
@@ -34,20 +35,19 @@ int main(int argc, char const *argv[])
     strcpy(transferType, argv[1]);
     strcpy(fileName, argv[2]);
 
-    if(strcmp(transferType, "1")==0){
+    if(strcmp(transferType, "upload")==0){
         transferArgument = UPLOAD_ARG;
         arquivo = fopen(fileName, "r");
         if(arquivo==NULL){
             fclose(arquivo);
             return 0;
         }
-    }else if(strcmp(transferType, "2")==0){
+        fclose(arquivo);
+    }else if(strcmp(transferType, "download")==0){
         transferArgument = DOWNLOAD_ARG;
-        printf("%d - ", DOWNLOAD_ARG);
     }else{
         return 0;
     }
-    fclose(arquivo);
     connect_to_server(transferArgument, fileName);
     return 0;
 }
@@ -57,31 +57,35 @@ void upload_to_server(int sockfd, char fileName[50]){
     int i;
     char character;
     FILE *arquivo;
-    arquivo = fopen(fileName, "r");
     i=0;
-    if(arquivo!=NULL){    
-        bzero(buff, BUFFER_SIZE);
+    bzero(buff, BUFFER_SIZE);
+    arquivo = fopen(fileName, "r");
+    if(arquivo!=NULL){  
+        
         strcpy(buff, "upload");
         write(sockfd, buff, sizeof(buff));  
         bzero(buff, BUFFER_SIZE);
+
         strcpy(buff, fileName);  
         write(sockfd, buff, sizeof(buff));  
         bzero(buff, BUFFER_SIZE);
-        do{
-            character = fgetc(arquivo);
+
+        character = fgetc(arquivo);
+        while (character!=EOF){
             if(i>=BUFFER_SIZE){
-                printf("%s", buff);
                 write(sockfd, buff, sizeof(buff));
-                i=0;
                 bzero(buff, BUFFER_SIZE);
+                i=0;
             }
             buff[i]=character;
+            character = fgetc(arquivo);
             i++;
-        }while(character!=EOF);
-        printf("%s\n", buff);
-        write(sockfd, buff, sizeof(buff));
-        i=0;
-        bzero(buff, BUFFER_SIZE);
+        }
+        write(sockfd, buff, sizeof(buff));     
+        fclose(arquivo);
+    }else{
+        fclose(arquivo);
+        printf(">> Error! The file doesn't exist.\n");
     }	
 }
 
@@ -124,6 +128,7 @@ void download_from_server(int sockfd, char fileName[50]){
     int i;
     char character;
     FILE *arquivo;
+
     bzero(buff, BUFFER_SIZE);
     strcpy(buff, "download");
     write(sockfd, buff, sizeof(buff));
@@ -132,21 +137,18 @@ void download_from_server(int sockfd, char fileName[50]){
     strcpy(buff, fileName);
     write(sockfd, buff, sizeof(buff));
 
-    bzero(buff, BUFFER_SIZE);
-    read(sockfd, buff, sizeof(buff));
-    if(strcmp(buff, "OK")!=0){
-        printf(">> Error! The file doesn't exist.\n");
+    arquivo = fopen(fileName, "w");
+    if(arquivo==NULL){
+        printf(">> Error! Não foi possivel criar o arquivo.\n");
     }else{
-        arquivo = fopen(fileName, "w");
-        i=0;
-        if(arquivo!=NULL){
-            while(i<1024){
-                bzero(buff, BUFFER_SIZE);
-                read(sockfd, buff, sizeof(buff));
-                fprintf(arquivo, "%s", buff);
-                i++;
-            }
-            fclose(arquivo);
-        }
+        while(i<1024){
+            bzero(buff, BUFFER_SIZE);
+            read(sockfd, buff, sizeof(buff));
+            fprintf(arquivo,"%s", buff);
+            i++;
+        }	
     }
+    fclose(arquivo);
 }
+
+
